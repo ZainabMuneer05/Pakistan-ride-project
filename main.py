@@ -6,22 +6,7 @@ from city_graph import City
 from driver import Driver
 from rider import Rider
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
-app = FastAPI()
-
-customer_session = {}
-
-@app.get("/get_name/{name}")
-def get_name(name: str | None, balance: int | 0):
-    customer_session = {"name": name, "balance": balance}
-
-@app.get("/get_name/{name}")
-def get_name(name: str | None, balance: int | 0):
-    customer_session = {"name": name, "balance": balance}
 
 class RideApp:
     def __init__(self):
