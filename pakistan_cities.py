@@ -1,0 +1,27 @@
+def get_pakistan_cities():
+    return {
+        "Karachi": 0, "Hyderabad": 160, "Sukkur": 460,
+        "Larkana": 520, "Rohri": 470, "Multan": 820,
+        "Bahawalpur": 900, "RahimYarKhan": 760,
+        "DGKhan": 880, "Faisalabad": 1050,
+        "Sahiwal": 980, "Okara": 1010,
+        "Lahore": 1150, "Gujranwala": 1200,
+        "Sialkot": 1230, "Gujrat": 1210,
+        "Jhelum": 1260, "Islamabad": 1350,
+        "Rawalpindi": 1360, "Attock": 1400,
+        "Peshawar": 1500, "Mardan": 1470,
+        "Swabi": 1440, "Abbottabad": 1460,
+        "Mansehra": 1500, "Swat": 1550,
+        "Dir": 1600, "Chitral": 1700,
+        "Gilgit": 1850, "Skardu": 1950,
+        "Hunza": 2000, "Muzaffarabad": 1450,
+        "Mirpur": 1420, "Kotli": 1400,
+        "Bhimber": 1380, "Quetta": 1300,
+        "Zhob": 1150, "Loralai": 1180,
+        "Khuzdar": 900, "Turbat": 600,
+        "Gwadar": 450, "Panjgur": 700,
+        "Thatta": 100, "Badin": 140,
+        "Umerkot": 260, "Tharparkar": 300,
+        "Jacobabad": 480, "Kashmore": 500,
+        "Chaman": 1200
+    }
