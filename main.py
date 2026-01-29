@@ -6,14 +6,14 @@ from city_graph import City
 from driver import Driver
 from rider import Rider
 
-
-
 class RideApp:
     def __init__(self):
         self.city = City()
         self.drivers = LinkedList()
         self.rollback = RollbackManager()
         self.helpline_number = "15"
+        # Driver names list for realism
+        self.driver_names = ["Ali", "Ahmed", "Usman", "Hamza", "Bilal", "Zubair", "Omar", "Hassan", "Zaid"]
         self.pak_cities_data = {
             "Karachi": 0, "Hyderabad": 160, "Sukkur": 460, "Larkana": 520, 
             "Rohri": 470, "Multan": 820, "Bahawalpur": 900, "RahimYarKhan": 760, 
@@ -37,8 +37,12 @@ class RideApp:
             u, v = city_list[i], city_list[i+1]
             dist = abs(self.pak_cities_data[v] - self.pak_cities_data[u])
             self.city.add_road(u, v, dist)
-        for i in range(1, 10):
-            self.drivers.add(Driver(i, random.choice(city_list), random.choice(["Bike", "Mini", "AC_Car"])))
+        
+        # Adding drivers with names instead of just IDs
+        for i in range(len(self.driver_names)):
+            d = Driver(i+1, random.choice(city_list), random.choice(["Bike", "Mini", "AC_Car"]))
+            d.name = self.driver_names[i] # Assigning name to driver object
+            self.drivers.add(d)
 
     def display_available_cities(self):
         print("\n" + "="*80)
@@ -79,41 +83,65 @@ class RideApp:
                 d = input("Enter Dropoff City: ").strip().title()
                 
                 if p in self.city.locations and d in self.city.locations:
+                    path, dist = self.city.get_shortest_path(p, d)
                     print("\n--- Select Your Vehicle Type ---")
-                    print("1. Bike    (Rate: 10 PKR/km)")
-                    print("2. Mini    (Rate: 20 PKR/km)")
-                    print("3. AC_Car  (Rate: 40 PKR/km)")
+                    print("Total Distance: ", dist)
+                    print(f"1. Bike    (Rate: 10 PKR/km) (Expected: {10*dist})")
+                    print(f"2. Mini    (Rate: 20 PKR/km) (Expected: {20*dist})")
+                    print(f"3. AC_Car  (Rate: 40 PKR/km) (Expected: {40*dist})")
                     v_choice = input("Enter Choice (1/2/3): ")
                     
                     rate, v_name, speed = (10, "Bike", 40) if v_choice == "1" else (40, "AC_Car", 60) if v_choice == "3" else (20, "Mini", 50)
-                    path, dist = self.city.get_shortest_path(p, d)
+                    
+                    available_drivers = [dr for dr in self.drivers.traverse() if dr.vehicle == v_name]
+                    selected_driver = random.choice(available_drivers) if available_drivers else random.choice(list(self.drivers.traverse()))
+                    
+                    print(f"\n✅ Your Nearest Driver: {selected_driver.name} is available!")
+                    
                     fare = dist * rate
                     eta_minutes = int((dist / speed) * 60)
                     
-                    print(f"\nDistance: {dist} km | ETA: {eta_minutes} mins | Total Fare: {fare} PKR")
+                    print(f"Distance: {dist} km | ETA: {eta_minutes} mins | Total Fare: {fare} PKR")
                     
                     if rider.wallet >= fare:
                         confirm = input("Confirm booking? (y/n): ")
                         if confirm.lower() == 'y':
                             print("\n⏳ Finding your driver...")
                             time.sleep(1)
-                            print(f"🚗 {v_name} assigned! Arriving in 2 minutes...")
+                            print(f"🚗 {v_name} assigned! {selected_driver.name} is arriving in 2 minutes...")
                             time.sleep(3.5)
-                            print("📍 Driver has arrived at your location.")
+                            print(f"📍 {selected_driver.name} has arrived at your location.")
                             time.sleep(2)
                             print(f"🚀 Your ride has started...")
                             time.sleep(2)
                             
                             print("\n✅ You have reached your destination!")
                             
+                            # --- Payment Selection & Summary ---
                             print("\n--- Payment Method ---")
                             print("1. Cash")
                             print("2. Online Pay (JazzCash/EasyPaisa)")
                             p_choice = input("Select Option (1/2): ")
                             
+                            # Billing and Route Summary
+                            print("\n" + "*"*40)
+                            print("           RIDE BILL SUMMARY")
+                            print("*"*40)
+                            print(f"Driver Name   : {selected_driver.name}")
+                            print(f"Pickup        : {p}")
+                            print(f"Dropoff       : {d}")
+                            print(f"Route Taken   : {' -> '.join(path)}")
+                            print(f"Total Fare    : {fare} PKR")
+                            
                             if p_choice == "2":
-                                print("\nPlease pay on this number (JazzCash/EasyPaisa): 03012345678")
                                 rider.wallet -= fare
+                                print(f"Payment Mode  : Online")
+                                print("JazzCash/EP   : 03012345678")
+                            else:
+                                print(f"Payment Mode  : Cash")
+                            
+                            print(f"New Wallet Bal: {rider.wallet:.2f} PKR")
+                            print("*"*40)
                             
                             self.rollback.push({"rider": rider, "fare": fare if p_choice == "2" else 0})
                             
@@ -137,12 +165,12 @@ class RideApp:
                 print(f"✅ Registered. ID: {random.randint(100,999)}")
             elif choice == "4":
                 print("\n--- Rankings ---")
-                for dr in self.drivers.traverse(): print(f"Driver {dr.id}: {dr.rating:.1f} ⭐")
+                for dr in self.drivers.traverse():
+                    print(f"Driver {dr.name}: {dr.rating:.1f} ⭐")
             elif choice == "5":
                 last = self.rollback.undo()
                 if last:
                     if last['fare'] > 0: last['rider'].wallet += last['fare']
-                    # Line 146 corrected below:
                     print(f"✅ Rollback Successful! {last['fare']} PKR Refunded.")
                 else: 
                     print("❌ No trips found.")
