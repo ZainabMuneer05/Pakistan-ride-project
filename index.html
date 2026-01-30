@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pakistan Ride | Premium Mobility</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+        
+        * { font-family: 'Outfit', sans-serif; color: #e2e8f0; }
+        body { background-color: #0b0f19; margin: 0; overflow-x: hidden; }
+
+        .app-container {
+            width: 90%;
+            max-width: 1000px;
+            min-height: 650px;
+            background: #151c2c;
+            margin: 40px auto;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            padding: 30px;
+            position: relative;
+        }
+
+        .brand-green { color: #10b981 !important; }
+        .bg-brand-green { background-color: #10b981 !important; }
+
+        .input-dark {
+            background: #1f2937;
+            border: 1px solid #374151;
+            padding: 15px;
+            border-radius: 12px;
+            width: 100%;
+            margin-bottom: 20px;
+            color: white !important;
+        }
+
+        select.input-dark {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.5em;
+        }
+
+        .btn-main {
+            background: #10b981;
+            color: #000 !important;
+            padding: 15px;
+            border-radius: 12px;
+            font-weight: 700;
+            width: 100%;
+            transition: 0.3s;
+        }
+
+        .option-card {
+            background: #1f2937;
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .option-card:hover {
+            border-color: #10b981;
+            transform: translateY(-5px);
+        }
+
+        #page-payment-select .option-card h3 { color: #000000 !important; font-weight: 800; }
+        #page-payment-select .option-card span { color: #000000 !important; }
+        #page-payment-select .option-card { background: #f3f4f6; }
+
+        /* Bill Detail Text - Fix for Blur/Light Text */
+        #bill-content p { color: #000000 !important; font-weight: 600; font-size: 1.1rem; margin-bottom: 8px; }
+        #bill-content strong { color: #000000 !important; font-weight: 800; }
+
+        #map { height: 350px; width: 100%; border-radius: 16px; margin-bottom: 20px; background: #242f3e; z-index: 1; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div id="page-welcome" class="text-center py-10">
+        <h1 class="text-5xl font-bold brand-green mb-4">Welcome to Pakistan Ride</h1>
+        <p class="text-gray-400 mb-10 italic">Welcome Wishes! Safe Travels</p>
+        <div class="max-w-md mx-auto">
+            <input type="text" id="user-name" placeholder="User Name" class="input-dark">
+            <input type="number" id="user-wallet" placeholder="Wallet Money (PKR)" class="input-dark">
+            <button onclick="login()" class="btn-main">ENTER</button>
+        </div>
+    </div>
+
+    <div id="page-dashboard" class="hidden">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-bold">Hello, <span id="display-name" class="brand-green">User</span></h2>
+            <div class="bg-gray-800 p-3 rounded-lg">
+                Wallet: <span id="display-wallet" class="brand-green">0</span> PKR
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="option-card" onclick="showPage('page-booking')">
+                <span class="text-4xl">🚕</span><h3 class="mt-2 font-bold">1. Book Ride</h3>
+            </div>
+            <div class="option-card" onclick="showHelpline()">
+                <span class="text-4xl">📞</span><h3 class="mt-2 font-bold">2. Call Helpline</h3>
+            </div>
+            <div class="option-card" onclick="showPage('page-complaint')">
+                <span class="text-4xl">📝</span><h3 class="mt-2 font-bold">3. File Complaint</h3>
+            </div>
+            <div class="option-card" onclick="showRankings()">
+                <span class="text-4xl">⭐</span><h3 class="mt-2 font-bold">4. Driver Rankings</h3>
+            </div>
+            <div class="option-card" onclick="handleRollback()">
+                <span class="text-4xl">🔙</span><h3 class="mt-2 font-bold">5. Rollback Trip</h3>
+            </div>
+            <div class="option-card" onclick="location.reload()">
+                <span class="text-4xl">✖</span><h3 class="mt-2 font-bold">6. Exit</h3>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-booking" class="hidden">
+        <h2 class="text-2xl font-bold mb-6 brand-green">Book Your Ride</h2>
+        <div class="grid grid-cols-2 gap-4">
+            <select id="pickup" class="input-dark" onchange="calculateFare()">
+                <option value="" disabled selected>Select Pickup City</option>
+            </select>
+            <select id="dropoff" class="input-dark" onchange="calculateFare()">
+                <option value="" disabled selected>Select Dropoff City</option>
+            </select>
+        </div>
+        <select id="vehicle" class="input-dark" onchange="calculateFare()">
+            <option value="Bike">Bike (10 PKR/km)</option>
+            <option value="Mini">Mini (20 PKR/km)</option>
+            <option value="AC_Car">AC Car (40 PKR/km)</option>
+        </select>
+        <div id="booking-details" class="bg-gray-800 p-4 rounded-lg mb-6 text-center text-lg">
+            <div class="font-bold text-emerald-400">Route Path:</div>
+            <div id="route-text" class="text-sm text-white mb-2 italic">Select cities to see route</div>
+            <div class="font-bold text-emerald-400">Distance: <span id="distance-text" class="text-white">0</span> km</div>
+            <div class="font-bold text-emerald-400 mt-1">Total Fare: <span id="estimated-fare" class="text-white">0</span> PKR</div>
+        </div>
+        <button onclick="startRide()" class="btn-main">CONFIRM BOOKING</button>
+        <button onclick="showPage('page-dashboard')" class="text-gray-400 mt-4 block mx-auto">Back to Menu</button>
+    </div>
+
+    <div id="page-ride" class="hidden">
+        <h2 id="ride-status" class="text-2xl font-bold mb-4 text-center">Finding Driver...</h2>
+        <div id="map"></div>
+        <div id="route-info" class="bg-gray-800 p-4 rounded-lg text-sm text-gray-300">
+            Route Status: <span id="route-path-live">Initializing...</span>
+        </div>
+    </div>
+
+    <div id="page-payment-select" class="hidden text-center">
+        <h2 class="text-3xl font-bold mb-8 brand-green">Select Payment Method</h2>
+        <div class="grid grid-cols-2 gap-6 max-w-md mx-auto">
+            <div class="option-card" onclick="showPaymentFinal('Cash')">
+                <span class="text-4xl">💵</span><h3 class="mt-2 font-bold">Cash</h3>
+            </div>
+            <div class="option-card" onclick="showPaymentFinal('Online')">
+                <span class="text-4xl">📱</span><h3 class="mt-2 font-bold">Online Pay</h3>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-bill" class="hidden">
+        <div class="bg-white p-8 rounded-xl max-w-md mx-auto border-dashed border-2 border-gray-400">
+            <h2 class="text-2xl font-bold text-black text-center border-b border-gray-300 pb-2 mb-4">RIDE BILL SUMMARY</h2>
+            <div class="space-y-2 font-mono" id="bill-content"></div>
+            <p class="mt-6 text-center font-bold text-emerald-600">BEST WISHES FROM PAKISTAN RIDE! ✨</p>
+        </div>
+        <button onclick="showPage('page-dashboard')" class="btn-main mt-8 max-w-md mx-auto block">DONE</button>
+    </div>
+
+    <div id="page-rankings" class="hidden">
+        <h2 class="text-3xl font-bold mb-6 brand-green">Driver Rankings</h2>
+        <div id="rankings-list" class="space-y-4"></div>
+        <button onclick="showPage('page-dashboard')" class="btn-main mt-8">BACK TO MENU</button>
+    </div>
+
+    <div id="page-complaint" class="hidden">
+        <h2 class="text-3xl font-bold mb-6 brand-green">File Your Complaint</h2>
+        <textarea id="complaint-text" class="input-dark h-40 text-left" placeholder="Enter your complaint details..."></textarea>
+        <button onclick="submitComplaint()" class="btn-main">SUBMIT COMPLAINT</button>
+        <button onclick="showPage('page-dashboard')" class="text-gray-400 mt-4 block mx-auto">Back to Menu</button>
+    </div>
+
+    <div id="page-rollback" class="hidden text-center">
+        <h2 class="text-3xl font-bold mb-6 brand-green">Rollback Manager</h2>
+        <div id="rollback-msg" class="text-2xl mb-8 p-6 bg-gray-800 rounded-xl"></div>
+        <button onclick="showPage('page-dashboard')" class="btn-main">BACK TO MENU</button>
+    </div>
+</div>
+
+<script>
+    const cities = ["Karachi", "Lahore", "Faisalabad", "Rawalpindi", "Gujranwala", "Peshawar", "Multan", "Hyderabad", "Islamabad", "Quetta", "Bahawalpur", "Sargodha", "Sialkot", "Sukkur", "Larkana", "Sheikhupura", "Rahim Yar Khan", "Jhang", "Dera Ghazi Khan", "Gujrat", "Sahiwal", "Wah Cantonment", "Mardan", "Kasur", "Okara", "Mingora", "Nawabshah", "Chiniot", "Kotri", "Kāmoke", "Hafizabad", "Sadiqabad", "Mirpur Khas", "Burewala", "Kohat", "Khanewal", "Dera Ismail Khan", "Turbat", "Muzaffargarh", "Abbottabad", "Mandi Bahauddin", "Shikarpur", "Jacobabad", "Jhelum", "Khanpur", "Khairpur", "Khuzdar", "Pakpattan", "Hub", "Daska"];
+
+    let map, marker, rider = { name: "", wallet: 0 };
+    let currentRide = { pickup: "", dropoff: "", fare: 0, driver: "", distance: 0, via: "" };
+    let lastRideFare = 0;
+    const drivers = [{ name: "Ali", rating: 4.8 }, { name: "Ahmed", rating: 4.5 }, { name: "Usman", rating: 4.9 }, { name: "Hamza", rating: 4.2 }, { name: "Bilal", rating: 4.6 }, { name: "Zubair", rating: 4.3 }, { name: "Omar", rating: 4.7 }, { name: "Hassan", rating: 4.4 }, { name: "Zaid", rating: 4.5 }];
+
+    function initFreeMap() {
+        if (!map) {
+            map = L.map('map').setView([30.3753, 69.3451], 5);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+        }
+    }
+
+    window.onload = function() {
+        const pickupSelect = document.getElementById('pickup');
+        const dropoffSelect = document.getElementById('dropoff');
+        cities.sort().forEach(city => {
+            pickupSelect.add(new Option(city, city));
+            dropoffSelect.add(new Option(city, city));
+        });
+        initFreeMap();
+    };
+
+    function showPage(pageId) {
+        document.querySelectorAll('.app-container > div').forEach(div => div.classList.add('hidden'));
+        document.getElementById(pageId).classList.remove('hidden');
+        if(pageId === 'page-ride') {
+            setTimeout(() => { map.invalidateSize(); }, 200);
+        }
+    }
+
+    function login() {
+        rider.name = document.getElementById('user-name').value;
+        rider.wallet = parseFloat(document.getElementById('user-wallet').value);
+        if(!rider.name || isNaN(rider.wallet)) return alert("Please enter valid details");
+        document.getElementById('display-name').innerText = rider.name;
+        document.getElementById('display-wallet').innerText = rider.wallet.toFixed(2);
+        showPage('page-dashboard');
+    }
+
+    function calculateFare() {
+        let p = document.getElementById('pickup').value;
+        let d = document.getElementById('dropoff').value;
+        if(!p || !d) return;
+
+        let dist = Math.abs(p.length + d.length) * 2 + 50; 
+        let rate = document.getElementById('vehicle').value === "Bike" ? 10 : (document.getElementById('vehicle').value === "Mini" ? 20 : 40);
+        
+        let otherCities = cities.filter(c => c !== p && c !== d);
+        let mid1 = otherCities[Math.floor(Math.random() * otherCities.length)];
+        let mid2 = otherCities[Math.floor(Math.random() * (otherCities.length/2))];
+        
+        currentRide.via = `${mid1} ➔ ${mid2}`;
+        currentRide.distance = dist;
+        currentRide.fare = dist * rate;
+        
+        document.getElementById('route-text').innerText = `${p} ➔ ${currentRide.via} ➔ ${d}`;
+        document.getElementById('distance-text').innerText = dist;
+        document.getElementById('estimated-fare').innerText = currentRide.fare;
+    }
+
+    function animateMarker(marker, fromLatLng, toLatLng, duration) {
+        let start = null;
+        const animate = (timestamp) => {
+            if (!start) start = timestamp;
+            const progress = (timestamp - start) / duration;
+            if (progress < 1) {
+                const lat = fromLatLng.lat + (toLatLng.lat - fromLatLng.lat) * progress;
+                const lng = fromLatLng.lng + (toLatLng.lng - fromLatLng.lng) * progress;
+                marker.setLatLng([lat, lng]);
+                requestAnimationFrame(animate);
+            } else {
+                marker.setLatLng(toLatLng);
+            }
+        };
+        requestAnimationFrame(animate);
+    }
+
+    function startRide() {
+        let p = document.getElementById('pickup').value;
+        let d = document.getElementById('dropoff').value;
+        if(!p || !d || p === d) return alert("Select different cities!");
+        if(rider.wallet < currentRide.fare) return alert("❌ Insufficient Balance!");
+        
+        currentRide.pickup = p;
+        currentRide.dropoff = d;
+        currentRide.driver = drivers[Math.floor(Math.random() * drivers.length)].name;
+        
+        showPage('page-ride');
+        document.getElementById('ride-status').innerText = "⏳ Finding Driver...";
+        
+        const driverStart = L.latLng(30.0, 70.0);
+        const pickupPoint = L.latLng(31.5, 74.3);
+        const dropPoint = L.latLng(24.8, 67.0);
+
+        const carIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/744/744465.png',
+            iconSize: [40, 40]
+        });
+
+        if(marker) map.removeLayer(marker);
+        marker = L.marker(driverStart, {icon: carIcon}).addTo(map);
+        map.setView(driverStart, 6);
+
+        setTimeout(() => {
+            document.getElementById('ride-status').innerText = `🚕 ${currentRide.driver} is coming to ${p}`;
+            animateMarker(marker, driverStart, pickupPoint, 3000);
+        }, 1000);
+
+        setTimeout(() => {
+            document.getElementById('ride-status').innerText = `🚀 Trip Started: Moving to ${d}`;
+            document.getElementById('route-path-live').innerText = `Passing via ${currentRide.via}`;
+            animateMarker(marker, pickupPoint, dropPoint, 4000);
+            map.flyTo(dropPoint, 8);
+        }, 4500);
+
+        setTimeout(() => {
+            document.getElementById('ride-status').innerText = `✅ Reached Destination!`; 
+            setTimeout(() => showPage('page-payment-select'), 1500);
+        }, 9000);
+    }
+
+    function showPaymentFinal(mode) {
+        if(mode === 'Online') { rider.wallet -= currentRide.fare; lastRideFare = currentRide.fare; }
+        else { lastRideFare = 0; }
+        const billHtml = `
+            <p><strong>Driver</strong>: ${currentRide.driver}</p>
+            <p><strong>Pickup</strong>: ${currentRide.pickup}</p>
+            <p><strong>Dropoff</strong>: ${currentRide.dropoff}</p>
+            <p><strong>Route Via</strong>: ${currentRide.via}</p>
+            <p><strong>Total Distance</strong>: ${currentRide.distance} km</p>
+            <p><strong>Fare</strong>: ${currentRide.fare} PKR</p>
+            <p><strong>Payment Mode</strong>: ${mode}</p>
+            <p class="border-t border-gray-300 pt-2"><strong>Wallet Balance</strong>: ${rider.wallet.toFixed(2)} PKR</p>
+        `;
+        document.getElementById('bill-content').innerHTML = billHtml;
+        document.getElementById('display-wallet').innerText = rider.wallet.toFixed(2);
+        showPage('page-bill');
+    }
+
+    function showHelpline() { alert("📞 Calling 15..."); }
+    function showRankings() {
+        let listHtml = "";
+        drivers.forEach(d => { listHtml += `<div class="bg-gray-800 p-4 rounded-lg flex justify-between"><b>${d.name}</b><span class="brand-green">${d.rating} ⭐</span></div>`; });
+        document.getElementById('rankings-list').innerHTML = listHtml;
+        showPage('page-rankings');
+    }
+    function submitComplaint() { alert("Complaint Registered!"); showPage('page-dashboard'); }
+    function handleRollback() {
+        if(lastRideFare > 0) { 
+            rider.wallet += lastRideFare; 
+            lastRideFare = 0; 
+            document.getElementById('rollback-msg').innerText = "✅ Refunded to Wallet!"; 
+            document.getElementById('display-wallet').innerText = rider.wallet.toFixed(2);
+        } else { 
+            document.getElementById('rollback-msg').innerText = "❌ No trip found."; 
+        }
+        showPage('page-rollback');
+    }
+</script>
+</body>
+</html>
